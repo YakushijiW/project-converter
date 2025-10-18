@@ -40,6 +40,7 @@ namespace project_converter
             this.txtIncludeExt = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.btnAddPreset = new System.Windows.Forms.Button();
+            this.btnEditPreset = new System.Windows.Forms.Button();
             this.btnDeletePreset = new System.Windows.Forms.Button();
             this.comboProfiles = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
@@ -69,6 +70,7 @@ namespace project_converter
             this.lblStatus = new System.Windows.Forms.Label();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.btnEditPreset = new System.Windows.Forms.Button();
             this.tabControlMain.SuspendLayout();
             this.tabPagePack.SuspendLayout();
             this.tabPageUnpack.SuspendLayout();
@@ -104,6 +106,7 @@ namespace project_converter
             this.tabPagePack.Controls.Add(this.txtIncludeExt);
             this.tabPagePack.Controls.Add(this.label5);
             this.tabPagePack.Controls.Add(this.btnDeletePreset);
+            this.tabPagePack.Controls.Add(this.btnEditPreset);
             this.tabPagePack.Controls.Add(this.btnAddPreset);
             this.tabPagePack.Controls.Add(this.comboProfiles);
             this.tabPagePack.Controls.Add(this.label4);
@@ -220,7 +223,7 @@ namespace project_converter
             // btnAddPreset
             // 
             this.btnAddPreset.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnAddPreset.Location = new System.Drawing.Point(528, 164);
+            this.btnAddPreset.Location = new System.Drawing.Point(428, 164);
             this.btnAddPreset.Name = "btnAddPreset";
             this.btnAddPreset.Size = new System.Drawing.Size(94, 25);
             this.btnAddPreset.TabIndex = 13;
@@ -228,6 +231,18 @@ namespace project_converter
             this.btnAddPreset.UseVisualStyleBackColor = true;
             this.btnAddPreset.Visible = false;
             this.btnAddPreset.Click += new System.EventHandler(this.btnAddPreset_Click);
+            // 
+            // btnEditPreset
+            // 
+            this.btnEditPreset.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnEditPreset.Location = new System.Drawing.Point(528, 164);
+            this.btnEditPreset.Name = "btnEditPreset";
+            this.btnEditPreset.Size = new System.Drawing.Size(94, 25);
+            this.btnEditPreset.TabIndex = 25;
+            this.btnEditPreset.Text = "修改预设";
+            this.btnEditPreset.UseVisualStyleBackColor = true;
+            this.btnEditPreset.Visible = false;
+            this.btnEditPreset.Click += new System.EventHandler(this.btnEditPreset_Click);
             // 
             // btnDeletePreset
             // 
@@ -247,7 +262,7 @@ namespace project_converter
             this.comboProfiles.FormattingEnabled = true;
             this.comboProfiles.Location = new System.Drawing.Point(166, 164);
             this.comboProfiles.Name = "comboProfiles";
-            this.comboProfiles.Size = new System.Drawing.Size(356, 25);
+            this.comboProfiles.Size = new System.Drawing.Size(256, 25);
             this.comboProfiles.TabIndex = 7;
             this.comboProfiles.SelectedIndexChanged += new System.EventHandler(this.comboProfiles_SelectedIndexChanged);
             // 
@@ -468,7 +483,34 @@ namespace project_converter
             this.lblGuide.Name = "lblGuide";
             this.lblGuide.Size = new System.Drawing.Size(500, 85);
             this.lblGuide.TabIndex = 2;
-            this.lblGuide.Text = "使用指南:\r\n\r\n1) 选择项目文件夹，或拖拽多个文件到列表进行打包。\r\n2) 选择预设或点击自定义后'添加预设'保存自定义扩展名和排除目录。\r\n3) 可以删除不需要的自定义预设。\r\n4) 解包页选择文本文件和目标路径开始解包。\r\n5) 设置页可修改默认输出文件名。";
+            // 设置“关于”页面的使用指南文本
+            lblGuide.Text = @"使用指南:
+
+【如何打包项目】
+1. 选择输入源：
+   - 方法一 (按项目打包): 点击“浏览...”选择项目根文件夹，
+     或直接将文件夹拖拽到“项目文件夹”输入框中。
+   - 方法二 (按文件打包): 点击“添加文件...”或直接将多个
+     文件/文件夹拖拽到下方的文件列表框中。
+2. 选择预设：根据您的项目类型，在“项目类型预设”下拉框
+   中选择一个合适的预设，文件后缀和排除目录会自动填充。
+3. 自定义预设 (可选):
+   - 您可以随时手动修改“包含的文件后缀”和“排除的文件夹”。
+   - 若要保存当前配置为新预设，请先将下拉框选为
+     “自定义...”，然后点击“添加预设”并命名。
+   - 您也可以“修改”或“删除”任何现有的预设。
+4. 选择输出位置：指定一个“输出文件夹”。
+5. 开始打包：点击“开始打包”按钮。
+
+【如何解包项目】
+1. 在“解包”标签页，选择之前打包好的文本文件。
+2. 选择一个用于存放还原后项目的文件夹（建议为空文件夹）。
+3. 点击“开始解包”按钮。解包完成后会自动进行文件哈希校验。
+
+【其他提示】
+- 所有路径输入框都支持拖拽文件或文件夹。
+- 您可以在“设置”中修改默认的输出文件名。
+- 程序会自动记住您上次使用的路径和选择的预设。";
             // 
             // linkGithub
             // 
@@ -584,6 +626,7 @@ namespace project_converter
         private ToolStripStatusLabel toolStripStatusLabel1;
         private Button btnAddPreset;
         private Button btnDeletePreset;
+        private Button btnEditPreset;
         private Label label9;
         private ListBox lstFiles;
         private Button btnAddFiles;

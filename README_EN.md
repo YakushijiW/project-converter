@@ -1,18 +1,26 @@
-# Project Converter
+# Project Packer/Unpacker
 
 [中文版 README](README.md) | **English README**
 
-A simple and easy-to-use project file packaging and unpacking tool that supports packing project folders into a single text file and restoring project structure from text files.
+A simple and practical WinForms tool that packs an entire project folder (or specified files) into a single `.txt` file for easy sharing, transfer, and archiving. It can also fully restore the project structure from this text file.
 
-## Features
+![Application Screenshot](https://raw.githubusercontent.com/YakushijiW/project-converter/main/screenshot.png)
 
-- **Project Packaging**: Pack entire project folders into a single text file
-- **Project Unpacking**: Restore complete project structure from packed text files
-- **Preset Management**: Built-in presets for various project types with custom preset support
-- **Smart Filtering**: Support file extension inclusion/exclusion and directory exclusion
-- **Drag & Drop Support**: Support drag and drop operations for files and folders
-- **Settings Memory**: Automatically remember last used paths and presets
-- **User Friendly**: Intuitive graphical interface with simple operations
+## Core Features
+
+- **Dual Packing Modes**:
+    - **By Directory**: Intelligently scans an entire project folder.
+    - **By Files**: Manually add or drag-and-drop any number of files to be packed.
+- **Project Restoration**: Parses the packed text file to completely restore the original project files and directory structure.
+- **Robust Preset System**:
+    - Built-in presets for many common project types (e.g., Unity, Unreal, Godot, Winform, Web Frontend).
+    - Supports **adding**, **modifying**, and **deleting** custom presets.
+    - Smart handling of built-in presets: modifications or deletions are saved as user preferences without altering the original preset file.
+- **File Integrity Check**: Automatically verifies each file's integrity using its SHA256 hash during unpacking to ensure data was not corrupted.
+- **User-Friendly Experience**:
+    - Clean and intuitive interface with drag-and-drop support for almost all path inputs.
+    - Real-time progress display for packing and unpacking operations.
+    - Automatically saves the last used paths and settings.
 
 ## System Requirements
 
@@ -21,56 +29,26 @@ A simple and easy-to-use project file packaging and unpacking tool that supports
 
 ## Usage
 
-### Pack Project
+### Packing a Project or Files
 
-1. **Select Project Path**: Click "Browse" button to select the project folder to pack
-2. **Select Output File**: Specify the location to save the packed text file
-3. **Select Preset**: Choose appropriate project type preset from dropdown list, or select "Custom..."
-4. **Custom Settings** (Optional):
-   - Include Extensions: Specify file types to include (e.g., .cs,.js,.html)
-   - Exclude Directories: Specify directories to exclude (e.g., bin,obj,node_modules)
-5. **Start Packing**: Click "Start Packing" button
+1.  **Select Source**:
+    - **To pack an entire project**: On the `Pack` tab, click the `Browse...` button to select your project's root directory, or simply drag the folder into the `Project Folder` input box.
+    - **To pack loose files**: Drag one or more files/folders directly into the `File List` box below.
+2.  **Configure Filters**:
+    - Choose the most suitable preset from the `Project Type Preset` dropdown, such as "Unreal Engine Project".
+    - The `Include Extensions` and `Exclude Directories` fields will be auto-populated. You can modify them manually (use commas or spaces as separators).
+3.  **Specify Output**:
+    - Click the `Browse...` button to select an `Output Folder` where the resulting text file will be saved.
+    - (Optional) You can change the default output filename in the `Settings` tab.
+4.  **Start Packing**:
+    - Click the green `Start Packing` button and wait for the process to complete.
 
-### Unpack Project
+### Unpacking (Restoring) a Project
 
-1. **Select Text File**: Click "Browse" button to select the text file to unpack
-2. **Select Target Path**: Specify the project folder location after unpacking
-3. **Start Unpacking**: Click "Start Unpacking" button
-
-### Preset Management
-
-- **Add Preset**: After selecting "Custom...", set include extensions and exclude directories, then click "Add Preset"
-- **Delete Preset**: Select the custom preset to delete, then click "Delete Preset" button
-- **Built-in Presets**: Includes common project types like C#, JavaScript, Python, Java, Web, etc.
-
-### Settings
-
-- **Default Output Name**: Set default name for packed files
-- **Auto Memory**: Program automatically remembers last used paths and presets
-
-## Technical Features
-
-- Developed with .NET 6.0 and Windows Forms
-- Asynchronous operations without blocking user interface
-- JSON format for storing user settings and presets
-- Support for large file processing with progress display
-- Complete error handling and user prompts
-
-## Build and Run
-
-```bash
-# Clone the project
-git clone https://github.com/YakushijiW/proj-2-text.git
-
-# Enter project directory
-cd project-converter
-
-# Build project
-dotnet build
-
-# Run project
-dotnet run
-```
+1.  Switch to the `Unpack` tab.
+2.  Click `Browse...` to select the `.txt` file that was previously packed.
+3.  Click `Browse...` to select a folder `Extract to Folder` (an empty folder is recommended).
+4.  Click the blue `Start Unpacking` button. The tool will recreate the directories and files, followed by an integrity check.
 
 ## License
 
@@ -78,12 +56,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contributing
 
-Issues and Pull Requests are welcome to improve this project.
-
-## Changelog
-
-### v1.1.0
-- Added delete preset functionality
-- Added auto-memory for last used paths and presets
-- Optimized user interface and experience
-- Improved error handling mechanism
+Contributions are welcome! Please feel free to submit an Issue or Pull Request.

@@ -22,8 +22,7 @@ namespace project_converter
         public Form1()
         {
             InitializeComponent();
-            LoadProfiles();
-            LoadUserPresets();
+            LoadProfiles(); // LoadProfiles内部会调用LoadUserPresets
             LoadUserSettings();
             WireDragDrop();
         }
@@ -33,23 +32,219 @@ namespace project_converter
             try
             {
                 string jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "project_profiles.json");
-                string jsonString = File.ReadAllText(jsonPath);
-                var loaded = JsonSerializer.Deserialize<Dictionary<string, ProjectProfile>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                _profiles = loaded ?? new Dictionary<string, ProjectProfile>();
 
-                comboProfiles.Items.Clear();
-                comboProfiles.Items.AddRange(_profiles.Keys.ToArray());
-                comboProfiles.Items.Add("自定义...");
-                if (comboProfiles.Items.Count > 0)
+                // 如果内置配置文件不存在，创建它
+                if (!File.Exists(jsonPath))
                 {
-                    comboProfiles.SelectedIndex = 0;
+                    CreateDefaultProfiles(jsonPath);
+                    MessageBox.Show("已创建默认预设配置文件，您可以根据需要修改。", "信息", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+
+                // 1. 加载内置预设
+                string jsonString = File.ReadAllText(jsonPath);
+                var loaded = JsonSerializer.Deserialize<Dictionary<string, ProjectProfile>>(jsonString,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (loaded == null || loaded.Count == 0)
+                {
+                    throw new Exception("预设配置文件为空或格式错误");
+                }
+                _profiles = loaded;
+
+                // 加载用户预设
+                LoadUserPresets();
+
+                // 重新填充下拉框
+                RefreshProfileComboBox();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载预设文件失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                _profiles = new Dictionary<string, ProjectProfile>();
+                MessageBox.Show($"加载预设文件失败: {ex.Message}\n将创建并使用默认预设。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                // 尝试创建默认预设并重试加载
+                try
+                {
+                    string jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "project_profiles.json");
+                    // 如果文件存在，先删除，确保是全新的
+                    if (File.Exists(jsonPath)) File.Delete(jsonPath);
+                    CreateDefaultProfiles(jsonPath);
+
+                    // 再次加载内置和用户预设
+                    string jsonString = File.ReadAllText(jsonPath);
+                    _profiles = JsonSerializer.Deserialize<Dictionary<string, ProjectProfile>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, ProjectProfile>();
+                    LoadUserPresets();
+                    RefreshProfileComboBox();
+                }
+                catch (Exception innerEx)
+                {
+                    MessageBox.Show($"创建默认预设也失败: {innerEx.Message}\n应用程序将继续运行，但预设功能可能不可用。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    SetupMinimalDefaultProfiles(); // 使用最小配置作为最后手段
+                }
             }
+        }
+
+        /// <summary>
+        /// 刷新预设下拉框
+        /// </summary>
+        private void RefreshProfileComboBox()
+        {
+            // 创建一个临时的字典来合并预设，以 _profiles (内置)为基础
+            var combinedProfiles = new Dictionary<string, ProjectProfile>(_profiles);
+
+            // 用用户预设覆盖或添加条目，用户预设优先级更高
+            foreach (var userPreset in _userPresets)
+            {
+                combinedProfiles[userPreset.Key] = userPreset.Value;
+            }
+
+            comboProfiles.Items.Clear();
+
+            // 遍历合并后的最终预设列表
+            foreach (var profileEntry in combinedProfiles)
+            {
+                var profileName = profileEntry.Key;
+                var profileData = profileEntry.Value;
+
+                // 检查这是否是一个被用户标记为"删除"的预设（即空预设）
+                if (profileData.Extensions.Count == 0 && profileData.ExcludeDirs.Count == 0)
+                {
+                    continue; // 如果是删除标记，则跳过，不添加到下拉框
+                }
+
+                comboProfiles.Items.Add(profileName);
+            }
+
+            comboProfiles.Items.Add("自定义...");
+
+            // 设置默认选中项
+            if (comboProfiles.Items.Count > 1) // 至少要有一个预设 + "自定义..."
+            {
+                // 尝试选中上次使用的预设
+                if (!string.IsNullOrEmpty(_settings?.LastSelectedPreset) && comboProfiles.Items.Contains(_settings.LastSelectedPreset))
+                {
+                    comboProfiles.SelectedItem = _settings.LastSelectedPreset;
+                }
+                else
+                {
+                    // 默认选中第一个
+                    comboProfiles.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                comboProfiles.SelectedItem = "自定义...";
+            }
+        }
+
+        /// <summary>
+        /// 创建默认的预设配置文件
+        /// </summary>
+        private void CreateDefaultProfiles(string filePath)
+        {
+            try
+            {
+                var defaultProfiles = new Dictionary<string, ProjectProfile>
+                {
+                    ["Unity 项目"] = new ProjectProfile
+                    {
+                        Name = "Unity 项目",
+                        Extensions = new List<string> { ".cs", ".lua", ".shader", ".json", ".txt" },
+                        ExcludeDirs = new List<string> { "Library", "Temp", "Logs", "Obj", ".vs", ".git", "Build", "WebGLBuilds" }
+                    },
+                    ["Unreal Engine 项目"] = new ProjectProfile // 新增
+                    {
+                        Name = "Unreal Engine 项目",
+                        Extensions = new List<string> { ".h", ".cpp", ".ini", ".uproject", ".uplugin" },
+                        ExcludeDirs = new List<string> { "Binaries", "DerivedDataCache", "Intermediate", "Saved", ".vs", ".vscode", ".git" }
+                    },
+                    ["Godot Engine 项目"] = new ProjectProfile // 新增
+                    {
+                        Name = "Godot Engine 项目",
+                        Extensions = new List<string> { ".gd", ".cs", ".tscn", ".tres", "project.godot" },
+                        ExcludeDirs = new List<string> { ".godot", ".vs", ".vscode", ".git", "export_presets.cfg" }
+                    },
+                    ["微信小程序"] = new ProjectProfile
+                    {
+                        Name = "微信小程序",
+                        Extensions = new List<string> { ".wxml", ".js", ".wxss", ".json", ".wxs", ".ts" },
+                        ExcludeDirs = new List<string> { "node_modules", "miniprogram_npm", ".git", "dist", "build" }
+                    },
+                    ["Python 项目"] = new ProjectProfile
+                    {
+                        Name = "Python 项目",
+                        Extensions = new List<string> { ".py", ".pyw", ".txt", ".yml", ".yaml", ".cfg", ".ini" },
+                        ExcludeDirs = new List<string> { "venv", ".venv", "__pycache__", ".git", ".idea", "dist", "build", ".pytest_cache" }
+                    },
+                    ["Winform 项目"] = new ProjectProfile
+                    {
+                        Name = "Winform 项目",
+                        Extensions = new List<string> { ".cs", ".sln", ".json" },
+                        ExcludeDirs = new List<string> { "bin", "obj", ".git", ".vs", ".vscode" }
+                    },
+                    ["Java 项目"] = new ProjectProfile
+                    {
+                        Name = "Java 项目",
+                        Extensions = new List<string> { ".java", ".xml", ".properties", ".txt", ".yml", ".yaml", ".gradle" },
+                        ExcludeDirs = new List<string> { "target", "build", ".git", ".idea", ".gradle", "out" }
+                    },
+                    ["PHP 项目"] = new ProjectProfile
+                    {
+                        Name = "PHP 项目",
+                        Extensions = new List<string> { ".php", ".json", ".xml", ".txt", ".yml", ".yaml", ".twig" },
+                        ExcludeDirs = new List<string> { "vendor", ".git", ".idea", "storage/logs", "bootstrap/cache" }
+                    },
+                    ["Go 项目"] = new ProjectProfile
+                    {
+                        Name = "Go 项目",
+                        Extensions = new List<string> { ".go", ".mod", ".sum", ".txt", ".yml", ".yaml" },
+                        ExcludeDirs = new List<string> { "vendor", ".git", ".idea", "bin", "pkg" }
+                    },
+                    ["Web 前端项目"] = new ProjectProfile
+                    {
+                        Name = "Web 前端项目",
+                        Extensions = new List<string> { ".html", ".css", ".js", ".ts", ".vue", ".jsx", ".tsx", ".json", ".scss", ".sass", ".less" },
+                        ExcludeDirs = new List<string> { "node_modules", "dist", ".git", ".idea", "build", ".next", ".nuxt" }
+                    },
+                    ["Android 项目"] = new ProjectProfile
+                    {
+                        Name = "Android 项目",
+                        Extensions = new List<string> { ".wxml", ".js", ".wxss", ".json", ".wxs", ".ts" },
+                        ExcludeDirs = new List<string> { "build", ".gradle", ".git", ".idea", "app/build", "gradle" }
+                    },
+                    ["iOS 项目"] = new ProjectProfile
+                    {
+                        Name = "iOS 项目",
+                        Extensions = new List<string> { ".swift", ".m", ".h", ".plist", ".storyboard", ".xib", ".txt" },
+                        ExcludeDirs = new List<string> { "build", "DerivedData", ".git", ".idea", "Pods", "xcuserdata" }
+                    },
+                    // ... 其他预设配置，按照上面优化的JSON格式继续添加
+                };
+
+                var json = JsonSerializer.Serialize(defaultProfiles, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                File.WriteAllText(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"创建默认预设文件失败: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 设置最小的默认配置（当所有方法都失败时使用）
+        /// </summary>
+        private void SetupMinimalDefaultProfiles()
+        {
+            _profiles = new Dictionary<string, ProjectProfile>
+            {
+                ["通用项目"] = new ProjectProfile
+                {
+                    Name = "通用项目",
+                    Extensions = new List<string> { ".cs", ".js", ".html", ".css", ".json", ".xml", ".txt", ".md" },
+                    ExcludeDirs = new List<string> { "bin", "obj", "node_modules", ".git", ".vs" }
+                }
+            };
+
+            RefreshProfileComboBox();
         }
 
         private void comboProfiles_SelectedIndexChanged(object sender, EventArgs e)
@@ -65,16 +260,19 @@ namespace project_converter
                 txtIncludeExt.Clear();
                 txtExcludeDirs.Clear();
                 btnAddPreset.Visible = true;
+                btnEditPreset.Visible = false;
                 btnDeletePreset.Visible = false;
                 return;
             }
 
-            // 检查是否为用户自定义预设
-            bool isUserPreset = _userPresets.ContainsKey(selected);
+            // 所有预设都可以修改和删除（除了"自定义..."选项）
             btnAddPreset.Visible = false;
-            btnDeletePreset.Visible = isUserPreset;
+            btnEditPreset.Visible = true;
+            btnDeletePreset.Visible = true;
 
-            if (_profiles.TryGetValue(selected, out var profile))
+            // 优先从用户预设中查找，然后从内置预设中查找
+            ProjectProfile? profile = null;
+            if (_userPresets.TryGetValue(selected, out profile) || _profiles.TryGetValue(selected, out profile))
             {
                 txtIncludeExt.Text = string.Join(", ", profile.Extensions);
                 txtExcludeDirs.Text = string.Join(", ", profile.ExcludeDirs);
@@ -263,23 +461,17 @@ namespace project_converter
                     var json = File.ReadAllText(path);
                     var dict = JsonSerializer.Deserialize<Dictionary<string, ProjectProfile>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     _userPresets = dict ?? new Dictionary<string, ProjectProfile>();
-                    // 合并到下拉框
-                    foreach (var key in _userPresets.Keys)
-                    {
-                        if (!_profiles.ContainsKey(key))
-                        {
-                            _profiles[key] = _userPresets[key];
-                        }
-                    }
-                    // 重新填充下拉
-                    comboProfiles.Items.Clear();
-                    comboProfiles.Items.AddRange(_profiles.Keys.ToArray());
-                    comboProfiles.Items.Add("自定义...");
+                }
+                else
+                {
+                    // 如果文件不存在，确保_userPresets是一个空字典而不是null
+                    _userPresets = new Dictionary<string, ProjectProfile>();
                 }
             }
             catch
             {
-                // ignore
+                // 加载失败时也确保是一个空字典，防止后续代码出错
+                _userPresets = new();
             }
         }
 
@@ -327,12 +519,78 @@ namespace project_converter
         }
 
         /// <summary>
+        /// 修改预设按钮点击事件处理
+        /// </summary>
+        private void btnEditPreset_Click(object sender, EventArgs e)
+        {
+            var selected = comboProfiles.SelectedItem as string;
+            if (string.IsNullOrWhiteSpace(selected))
+            {
+                return;
+            }
+
+            // 获取当前预设的配置
+            ProjectProfile? currentProfile = null;
+            if (!_userPresets.TryGetValue(selected, out currentProfile) && !_profiles.TryGetValue(selected, out currentProfile))
+            {
+                return;
+            }
+
+            using var dlg = new PresetDialog();
+            dlg.PresetName = selected; // 设置当前预设名称
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                string newPresetName = dlg.PresetName;
+                if (string.IsNullOrWhiteSpace(newPresetName)) return;
+
+                // 从当前UI获取设置信息
+                var newProfile = new ProjectProfile
+                {
+                    Name = newPresetName,
+                    Extensions = txtIncludeExt.Text.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim()).ToList(),
+                    ExcludeDirs = txtExcludeDirs.Text.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim()).ToList()
+                };
+
+                // 如果预设名称改变了，需要删除旧的预设
+                if (newPresetName != selected)
+                {
+                    // 删除旧预设
+                    if (_userPresets.ContainsKey(selected))
+                    {
+                        _userPresets.Remove(selected);
+                    }
+                    else if (_profiles.ContainsKey(selected))
+                    {
+                        // 如果是内置预设，标记为删除
+                        _userPresets[selected] = new ProjectProfile { Extensions = new List<string>(), ExcludeDirs = new List<string>() };
+                    }
+                    
+                    // 从下拉框中移除旧预设
+                    comboProfiles.Items.Remove(selected);
+                }
+
+                // 保存新预设
+                _userPresets[newPresetName] = newProfile;
+                SaveUserPresets();
+
+                // 更新下拉框
+                if (newPresetName != selected)
+                {
+                    comboProfiles.Items.Insert(0, newPresetName);
+                }
+                comboProfiles.SelectedItem = newPresetName;
+            }
+        }
+
+        /// <summary>
         /// 删除预设按钮点击事件处理
         /// </summary>
         private void btnDeletePreset_Click(object sender, EventArgs e)
         {
             var selected = comboProfiles.SelectedItem as string;
-            if (string.IsNullOrWhiteSpace(selected) || !_userPresets.ContainsKey(selected))
+            if (string.IsNullOrWhiteSpace(selected))
             {
                 return;
             }
@@ -342,9 +600,17 @@ namespace project_converter
             
             if (result == DialogResult.Yes)
             {
-                // 从字典中移除
-                _userPresets.Remove(selected);
-                _profiles.Remove(selected);
+                // 如果是内置预设，将其添加到用户预设中作为"已删除"标记
+                if (_profiles.ContainsKey(selected) && !_userPresets.ContainsKey(selected))
+                {
+                    // 标记内置预设为已删除（通过在用户预设中添加空预设）
+                    _userPresets[selected] = new ProjectProfile { Extensions = new List<string>(), ExcludeDirs = new List<string>() };
+                }
+                else if (_userPresets.ContainsKey(selected))
+                {
+                    // 删除用户自定义预设
+                    _userPresets.Remove(selected);
+                }
                 
                 // 从下拉框中移除
                 comboProfiles.Items.Remove(selected);
@@ -517,7 +783,7 @@ namespace project_converter
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com/your/repo", // TODO: 替换为真实链接
+                    FileName = "https://github.com/YakushijiW/project-converter",
                     UseShellExecute = true
                 });
             }

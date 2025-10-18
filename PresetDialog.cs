@@ -92,6 +92,10 @@ namespace project_converter
             }
         }
 
-        public string PresetName => txtName.Text.Trim();
+        public string PresetName 
+        { 
+            get => txtName.Text.Trim(); 
+            set => txtName.Text = value; 
+        }
     }
 }
