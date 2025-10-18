@@ -1,0 +1,22 @@
+# 编译输出
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio 文件
+.vs/
+# Visual Studio Code 文件
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+
+# 可执行文件
+*.exe
+*.dll
+*.pdb
