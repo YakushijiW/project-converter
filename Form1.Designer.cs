@@ -530,7 +530,7 @@ namespace project_converter
             this.lblVersion.Name = "lblVersion";
             this.lblVersion.Size = new System.Drawing.Size(113, 17);
             this.lblVersion.TabIndex = 0;
-            this.lblVersion.Text = "版本：v1.0.0 (示例)";
+            this.lblVersion.Text = "版本：v1.0.0";
             // 
             // progressBar
             // 
